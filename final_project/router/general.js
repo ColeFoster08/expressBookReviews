@@ -5,6 +5,10 @@ let users = require("./auth_users.js").users;
 const public_users = express.Router();
 const axios = require('axios');
 
+let promiseCb = new Promise((resolve) => {
+    setTimeout(() => {
+      resolve("Promise resolved")
+    },6000)})
 
 public_users.post("/register", (req,res) => {
     //Write your code here
@@ -26,9 +30,9 @@ public_users.post("/register", (req,res) => {
 });
 
 // Get the book list available in the shop
-public_users.get('/',function (req, res) {
+public_users.get('/', function (req, res) {
     //Write your code here
-    res.send(JSON.stringify(books,null,4));
+    res.send(JSON.stringify(books, null, 4));
 });
 
 // Get book details based on ISBN
@@ -59,26 +63,6 @@ public_users.get('/author/:author',function (req, res) {
     }
 });
 
-// Get all books based on title
-public_users.get('/title/:title',function (req, res) {
-    //Write your code here
-    const title = req.params.title;
-    let keys = Object.keys(books);
-    let result = []
-
-    for (let key of keys) {
-        let book = books[key];
-        if (book.title == title) {
-            result.push(book)
-        }
-    }
-
-    if (result.length > 0) {
-        res.send(JSON.stringify(result,null,4));
-    } else {
-        return res.status(404).json({message: "No books found for this title"});
-    }
-});
 
 //  Get book review
 public_users.get('/review/:isbn',function (req, res) {
@@ -87,69 +71,91 @@ public_users.get('/review/:isbn',function (req, res) {
     res.send(books[isbn].reviews);
 });
 
-function getListBooks() {
-    axios.get('https://colefoster-5000.theianext-1-labs-prod-misc-tools-us-east-0.proxy.cognitiveclass.ai/')
-        .then(response => {
-            console.log("Here is a list of all books avaliable in the shop:");
-            console.log(response.data)
-        })
-        .catch(error => {
-            console.error("There was an error while fetching books:", error.message);
+public_users.get('/', async function (req, res) {
+    //Write your code here
+    try {
+        const data = await new Promise((resolve) => {
+            setTimeout(() => {
+                resolve(Object.values(books));
+            }, 3000);
         });
-}
 
-getListBooks();
+        return res.status(200).json(data);
+    } catch (error) {
+        return res.status(500).json({message: "Internal server error."});
+    }
+});
 
-
-function getBookByISBN(isbn) {
-    axios.get(`https://colefoster-5000.theianext-1-labs-prod-misc-tools-us-east-0.proxy.cognitiveclass.ai/isbn/${isbn}`)
-        .then(response => {
-            if (response.data) {
-                console.log(`Here is the book with the provided ISBN: ${isbn}`);
-                console.log(response.data)
-            } else {
-                console.log(`Unable to find a book with the provided ISBN: ${isbn}`);
-            }
-        })
-        .catch(error => {
-            console.error("There was an error while fetching books:", error.message);
+// Get book details based on ISBN
+public_users.get('/isbn/:isbn', async function (req, res) {
+    try {
+        const data = await new Promise((resolve) => {
+            setTimeout(() => {
+                const isbn = req.params.isbn;
+                resolve(books[isbn]);
+            }, 3000);
         });
-}
+        if (data) {
+            return res.status(200).json(data);
+        }
+        return res.status(404).json({message: "Invalid ISBN"});
+    } catch (error) {
+        return res.status(500).json({message: "Internal server error."});
+    }
+ });
 
-getBookByISBN(1);
+ // Get book details based on author
+public_users.get('/author/:author', async function (req, res) {
+    try {
+        const data = await new Promise((resolve) => {
+            setTimeout(() => {
+                const author = req.params.author;
+                let keys = Object.keys(books);
+                let result = []
 
-function getBookByAuthor(author) {
-    axios.get(`https://colefoster-5000.theianext-1-labs-prod-misc-tools-us-east-0.proxy.cognitiveclass.ai/author/${author}`)
-        .then(response => {
-            if (response.data) {
-                console.log(`Here is the book by the author: ${author}`);
-                console.log(response.data)
-            } else {
-                console.log(`Unable to find a book by the author: ${author}`);
-            }
-        })
-        .catch(error => {
-            console.error("There was an error while fetching books:", error.message);
+                for (let key of keys) {
+                    let book = books[key];
+                    if (book.author == author) {
+                        result.push(book)
+                    }
+                }
+                resolve(result);
+            }, 3000);
         });
-}
+        if (data.length > 0) {
+            return res.status(200).json(data);
+        }
+        return res.status(404).json({message: "Invalid author"});
+    } catch (error) {
+        return res.status(500).json({message: "Internal server error."});
+    }
+});
 
-getBookByAuthor("Dante Alighieri");
+// Get all books based on title
+public_users.get('/title/:title', async function (req, res) {
+    try {
+        const data = await new Promise((resolve) => {
+            setTimeout(() => {
+                const title = req.params.title;
+                let keys = Object.keys(books);
+                let result = []
 
-function getBookByTitle(title) {
-    axios.get(`https://colefoster-5000.theianext-1-labs-prod-misc-tools-us-east-0.proxy.cognitiveclass.ai/title/${title}`)
-        .then(response => {
-            if (response.data) {
-                console.log(`Here is the book with the title: ${title}`);
-                console.log(response.data)
-            } else {
-                console.log(`Unable to find a book with the title: ${title}`);
-            }
-        })
-        .catch(error => {
-            console.error("There was an error while fetching books:", error.message);
+                for (let key of keys) {
+                    let book = books[key];
+                    if (book.title == title) {
+                        result.push(book)
+                    }
+                }
+                resolve(result);
+            }, 3000);
         });
-}
-
-getBookByTitle("One Thousand and One Nights");
+        if (data.length > 0) {
+            return res.status(200).json(data);
+        }
+        return res.status(404).json({message: "Invalid title"});
+    } catch (error) {
+        return res.status(500).json({message: "Internal server error."});
+    }
+});
 
 module.exports.general = public_users;
